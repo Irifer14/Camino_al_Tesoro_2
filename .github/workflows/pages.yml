@@ -34,3 +34,19 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # Si el deploy falla por un problema de la API de GitHub, lo relanza UNA vez a los 60 s
+  # (solo desde un push; el relanzamiento es workflow_dispatch, asi que no se encadena).
+  retry:
+    needs: deploy
+    if: ${{ failure() && github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Relanzar deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sleep 60
+          gh workflow run pages.yml --repo "${{ github.repository }}" --ref main
